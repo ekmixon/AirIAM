@@ -11,7 +11,7 @@ class IAMPolicyTransformer(BaseEntityTransformer):
         document = next(version['Document'] for version in entity_json['PolicyVersionList'] if version['IsDefaultVersion'])
         policy = IAMPolicyDocumentTransformer(document, self._safe_name)
         tags = BaseEntityTransformer.transform_tags(entity_json)
-        policy_code = f"""{policy.code()}
+        return f"""{policy.code()}
 
 resource "aws_iam_policy" "{self._safe_name}" {{
   name        = "{entity_json['PolicyName']}"
@@ -21,7 +21,6 @@ resource "aws_iam_policy" "{self._safe_name}" {{
 }}
 
 """
-        return policy_code
 
     def entities_to_import(self) -> list:
         return [{"identifier": self.identifier(), "entity": self._policy_arn}]

@@ -16,10 +16,9 @@ class IAMPolicyDocumentTransformer(BaseEntityTransformer):
             statements = self.transform_assume_policy_statements(statements)
         else:
             statements = self.transform_execution_policy(statements)
-        code = f"""data "aws_iam_policy_document" "{self._safe_name}" {{
+        return f"""data "aws_iam_policy_document" "{self._safe_name}" {{
   version = "{entity_json.get('Version', '2012-10-17')}"
 {statements}}}"""
-        return code
 
     @staticmethod
     def transform_execution_policy(statements):
@@ -86,9 +85,7 @@ class IAMPolicyDocumentTransformer(BaseEntityTransformer):
 
     @staticmethod
     def force_list(x):
-        if isinstance(x, list):
-            return x
-        return [x]
+        return x if isinstance(x, list) else [x]
 
     def entities_to_import(self) -> list:
         return []

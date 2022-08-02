@@ -11,19 +11,19 @@ def filter_attachments_of_unused_entities(unused_policy_attachments, unused_user
     unused_role_names = list(map(lambda role_obj: role_obj['RoleName'], unused_roles))
     unused_user_names = list(map(lambda user_obj: user_obj['UserName'], unused_users))
     redundant_group_names = list(map(lambda group_obj: group_obj['GroupName'], redundant_groups))
-    unused_policy_attachments_of_in_use_principals = []
-    for policy_attachment_obj in unused_policy_attachments:
-        if 'Role' in policy_attachment_obj:
-            if policy_attachment_obj['Role'] not in unused_role_names:
-                unused_policy_attachments_of_in_use_principals.append(policy_attachment_obj)
-        elif 'User' in policy_attachment_obj:
-            if policy_attachment_obj['User'] not in unused_user_names:
-                unused_policy_attachments_of_in_use_principals.append(policy_attachment_obj)
-        elif 'Group' in policy_attachment_obj:
-            if policy_attachment_obj['Group'] not in redundant_group_names:
-                unused_policy_attachments_of_in_use_principals.append(policy_attachment_obj)
-
-    return unused_policy_attachments_of_in_use_principals
+    return [
+        policy_attachment_obj
+        for policy_attachment_obj in unused_policy_attachments
+        if 'Role' in policy_attachment_obj
+        and policy_attachment_obj['Role'] not in unused_role_names
+        or 'Role' not in policy_attachment_obj
+        and 'User' in policy_attachment_obj
+        and policy_attachment_obj['User'] not in unused_user_names
+        or 'Role' not in policy_attachment_obj
+        and 'User' not in policy_attachment_obj
+        and 'Group' in policy_attachment_obj
+        and policy_attachment_obj['Group'] not in redundant_group_names
+    ]
 
 
 def filter_credentials_of_unused_users(unused_active_access_keys, unused_console_login_profiles, unused_users) -> (list, list):
@@ -69,9 +69,13 @@ def find_unused_users(users, credential_report, unused_threshold) -> (list, list
     used_users = []
     for user in users:
         credentials = next((creds for creds in credential_report if creds['user'] == user['UserName']), {})
-        
-        findMinimumUsed = []
-        findMinimumUsed.append(days_from_today(credentials.get('access_key_1_last_used_date', 'N/A')))
+
+        findMinimumUsed = [
+            days_from_today(
+                credentials.get('access_key_1_last_used_date', 'N/A')
+            )
+        ]
+
         findMinimumUsed.append(days_from_today(credentials.get('access_key_2_last_used_date', 'N/A')))
         findMinimumUsed.append(days_from_today(credentials.get('password_last_used', 'N/A')))
         try:
@@ -80,10 +84,7 @@ def find_unused_users(users, credential_report, unused_threshold) -> (list, list
         except:
             last_used_in_days = min(i for i in findMinimumUsed if i < 0)
 
-        if last_used_in_days >= unused_threshold:
-            user['LastUsed'] = last_used_in_days
-            unused_users.append(user)
-        elif last_used_in_days < 0:
+        if last_used_in_days >= unused_threshold or last_used_in_days < 0:
             user['LastUsed'] = last_used_in_days
             unused_users.append(user)
         else:
@@ -207,9 +208,16 @@ def get_unused_role_policy_attachments(account_policies, principal):
         policy_document = next(version for version in policy_obj['PolicyVersionList'] if version['IsDefaultVersion'])['Document']
         if PolicyAnalyzer.is_policy_unused(policy_document, services_last_accessed):
             unused_policy_attachments.append({"Role": principal['RoleName'], "PolicyArn": managed_policy['PolicyArn']})
-    for inline_policy in principal.get('RolePolicyList', []):
-        if PolicyAnalyzer.is_policy_unused(inline_policy['PolicyDocument'], services_last_accessed):
-            unused_policy_attachments.append({"Role": principal['RoleName'], "PolicyArn": inline_policy['PolicyName']})
+    unused_policy_attachments.extend(
+        {
+            "Role": principal['RoleName'],
+            "PolicyArn": inline_policy['PolicyName'],
+        }
+        for inline_policy in principal.get('RolePolicyList', [])
+        if PolicyAnalyzer.is_policy_unused(
+            inline_policy['PolicyDocument'], services_last_accessed
+        )
+    )
 
     return unused_policy_attachments
 

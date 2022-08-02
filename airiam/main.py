@@ -34,9 +34,9 @@ def run():
 
     if args.command == 'recommend_groups' or args.command == 'terraform' and not args.without_groups:
         report_with_recommendations = recommend_groups(logger, runtime_results, args.last_used_threshold)
-        if args.command == 'recommend_groups':
-            Reporter.report_groupings(report_with_recommendations)
-            exit()
+    if args.command == 'recommend_groups':
+        Reporter.report_groupings(report_with_recommendations)
+        exit()
 
     if args.command == 'terraform':
         entities_terraformed, result_dir = TerraformTransformer(logger, args.profile, args.directory)\

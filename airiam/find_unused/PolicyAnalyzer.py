@@ -33,15 +33,35 @@ class PolicyAnalyzer:
             return False
 
         policy_actions = PolicyAnalyzer._get_policy_actions(policy_document)
-        if len([action for action in policy_actions if
-                len(list(filter(re.compile(action.replace('*', '.*')).match, ACTIONS_NOT_COVERED_BY_ACCESS_ADVISOR))) > 0]) > 0:
+        if [
+            action
+            for action in policy_actions
+            if len(
+                list(
+                    filter(
+                        re.compile(action.replace('*', '.*')).match,
+                        ACTIONS_NOT_COVERED_BY_ACCESS_ADVISOR,
+                    )
+                )
+            )
+            > 0
+        ]:
             return False
 
         services_accessed_through_policy = list(set(map(lambda action: action.split(':')[0], policy_actions)))
-        return len(
-            [service for service in services_accessed_through_policy if
-             len(list(filter(re.compile(service.replace('*', '.*')).match, services_last_accessed))) > 0
-             ]) == 0
+        return not [
+            service
+            for service in services_accessed_through_policy
+            if len(
+                list(
+                    filter(
+                        re.compile(service.replace('*', '.*')).match,
+                        services_last_accessed,
+                    )
+                )
+            )
+            > 0
+        ]
 
     @staticmethod
     def policy_is_write_access(policy_document):

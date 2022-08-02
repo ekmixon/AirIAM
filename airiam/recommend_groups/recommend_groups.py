@@ -10,7 +10,7 @@ READ_ONLY_ARN = 'arn:aws:iam::aws:policy/ReadOnlyAccess'
 
 def recommend_groups(logger, runtime_iam_report: RuntimeReport, last_used_threshold=90, organizer=None):
     account_id = runtime_iam_report.get_raw_data()['AccountRoles'][0]['Arn'].split(":")[4]
-    logger.info("Analyzing data for account {}".format(account_id))
+    logger.info(f"Analyzing data for account {account_id}")
 
     if not organizer:
         logger.info('Using the default UserOrganizer')
@@ -35,8 +35,9 @@ class UserOrganizer:
         """
         iam_data = runtime_report.get_raw_data()
         human_users, service_users = self._separate_user_types(iam_data['AccountUsers'])
-        simple_user_clusters = self._create_simple_user_clusters(human_users, iam_data['AccountGroups'], iam_data['AccountPolicies'])
-        return simple_user_clusters
+        return self._create_simple_user_clusters(
+            human_users, iam_data['AccountGroups'], iam_data['AccountPolicies']
+        )
 
     def _create_simple_user_clusters(self, users, account_groups, account_policies):
         clusters = {
@@ -51,8 +52,10 @@ class UserOrganizer:
             for group_name in user['GroupList']:
                 group_managed_policies = next(g['AttachedManagedPolicies'] for g in account_groups if g['GroupName'] == group_name)
                 user_attached_managed_policies.extend(group_managed_policies)
-            user_attached_managed_policies = list(set(map(lambda p: p['PolicyArn'], user_attached_managed_policies)))
-            user_attached_managed_policies.sort()
+            user_attached_managed_policies = sorted(
+                set(map(lambda p: p['PolicyArn'], user_attached_managed_policies))
+            )
+
             if ADMIN_POLICY_ARN in user_attached_managed_policies:
                 clusters['Admins']['Users'].append(user['UserName'])
             else:
@@ -89,7 +92,10 @@ class UserOrganizer:
                     clusters['Powerusers']['Users'].append(user['UserName'])
                 else:
                     clusters['ReadOnly']['Users'].append(user['UserName'])
-        policies_sorted = list({k: v for k, v in sorted(policies_in_use.items(), key=lambda item: -item[1])}.keys())
+        policies_sorted = list(
+            dict(sorted(policies_in_use.items(), key=lambda item: -item[1])).keys()
+        )
+
 
         clusters['Powerusers']['Policies'] = policies_sorted
         return clusters

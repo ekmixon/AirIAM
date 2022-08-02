@@ -14,7 +14,7 @@ class TestOrganizers(unittest.TestCase):
     def test_user_organizer(self):
         unused_threshold = 10 + days_from_today('2020-03-21T11:41:00+00:00')
         current_dir = os.path.abspath(os.path.dirname(__file__))
-        with open("{}/{}".format(current_dir, "../iam_data.json")) as f:
+        with open(f"{current_dir}/../iam_data.json") as f:
             iam_data = json.load(f)
         self.report = RuntimeReport('000000000000', 'arn:aws:iam::000000000000:user/testuser', iam_data)
         credential_report = iam_data['CredentialReport']

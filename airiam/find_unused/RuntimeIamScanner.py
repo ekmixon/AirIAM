@@ -151,16 +151,15 @@ class RuntimeIamScanner:
         count = len(arn_list)
         for arn in arn_list:
             try:
-                print(ERASE_LINE + f"\r{i} of {count}: Generating report for {arn}", end="")
+                print(f"{ERASE_LINE}\r{i} of {count}: Generating report for {arn}", end="")
                 job_id = iam.generate_service_last_accessed_details(Arn=arn)['JobId']
                 i += 1
             except ClientError as error:
-                if error.response['Error']['Code'] == 'Throttling':
-                    print('Reached throttling, sleeping for 5 seconds')
-                    time.sleep(5)
-                    job_id = iam.generate_service_last_accessed_details(Arn=arn)['JobId']
-                else:
+                if error.response['Error']['Code'] != 'Throttling':
                     raise error
+                print('Reached throttling, sleeping for 5 seconds')
+                time.sleep(5)
+                job_id = iam.generate_service_last_accessed_details(Arn=arn)['JobId']
             results[arn] = job_id
         print(ERASE_LINE + "\rGenerated reports for all principals")
 
@@ -170,20 +169,19 @@ class RuntimeIamScanner:
         for arn in results:
             job_id = results[arn]
             try:
-                print(ERASE_LINE + f"\r{i} of {count}: Getting report for {arn}", end="")
+                print(f"{ERASE_LINE}\r{i} of {count}: Getting report for {arn}", end="")
                 results[arn] = RuntimeIamScanner.simplify_service_access_result(
                     iam.get_service_last_accessed_details(JobId=job_id)['ServicesLastAccessed']
                 )
                 i += 1
             except ClientError as error:
-                if error.response['Error']['Code'] == 'Throttling':
-                    print('Reached throttling, sleeping for 5 seconds')
-                    time.sleep(5)
-                    results[arn] = RuntimeIamScanner.simplify_service_access_result(
-                        iam.get_service_last_accessed_details(JobId=job_id)['ServicesLastAccessed']
-                    )
-                else:
+                if error.response['Error']['Code'] != 'Throttling':
                     raise error
+                print('Reached throttling, sleeping for 5 seconds')
+                time.sleep(5)
+                results[arn] = RuntimeIamScanner.simplify_service_access_result(
+                    iam.get_service_last_accessed_details(JobId=job_id)['ServicesLastAccessed']
+                )
         print(ERASE_LINE + "\rReceived usage results for all principals")
         return results
 
@@ -199,10 +197,12 @@ class RuntimeIamScanner:
         headers = rows[0].split(',')
         for row in rows[1:]:
             values = row.split(',')
-            entity = {}
-            for i in range(len(values)):
-                if values[i] != 'N/A':
-                    entity[headers[i]] = values[i]
+            entity = {
+                headers[i]: values[i]
+                for i in range(len(values))
+                if values[i] != 'N/A'
+            }
+
             json_report.append(entity)
         return json_report
 

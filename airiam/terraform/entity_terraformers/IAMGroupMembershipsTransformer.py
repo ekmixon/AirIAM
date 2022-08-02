@@ -18,7 +18,9 @@ class IAMGroupMembershipsTransformer(BaseEntityTransformer):
 """
 
     def entities_to_import(self) -> list:
-        entities_to_import = []
-        for i in range(0, len(self._users)):
-            entities_to_import.append({"identifier": f"{self.identifier()}[i]", })
-        return entities_to_import
+        return [
+            {
+                "identifier": f"{self.identifier()}[i]",
+            }
+            for _ in range(len(self._users))
+        ]

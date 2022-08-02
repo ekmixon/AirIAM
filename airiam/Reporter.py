@@ -28,7 +28,7 @@ class Reporter:
                 if user["LastUsed"] == -1:
                     ending = "Never used!"
                 else:
-                    ending = "last used {} days ago".format(user["LastUsed"])
+                    ending = f'last used {user["LastUsed"]} days ago'
                 print(colored('Unused: ', 'red', attrs=['bold']) + f'{user["UserName"]}: {ending}')
             time.sleep(5)
         else:
@@ -50,15 +50,26 @@ class Reporter:
         if len(unused_console_login_profiles) > 0:
             print(colored(f'The following {len(unused_console_login_profiles)} users have password access they aren\'t using:', 'yellow', attrs=['bold']))
             for console_login_profile in unused_console_login_profiles:
-                has_mfa = console_login_profile['MFAEnabled']
-                if has_mfa:
+                if has_mfa := console_login_profile['MFAEnabled']:
                     print(colored(console_login_profile['User'], 'yellow', attrs=['bold'])
                           + ' has password access to the AWS console (with MFA) but hasn\'t used it in the last '
                           + f'{console_login_profile["DaysSinceLastUse"]} days')
                 else:
-                    print(colored(console_login_profile['User'], 'red', attrs=['bold'])
-                          + f' has password access to the AWS console ' + colored('WITHOUT MFA', 'red')
-                          + f' but hasn\'t used it in the last {console_login_profile["DaysSinceLastUse"]} days')
+                    print(
+                        (
+                            (
+                                colored(
+                                    console_login_profile['User'],
+                                    'red',
+                                    attrs=['bold'],
+                                )
+                                + ' has password access to the AWS console '
+                            )
+                            + colored('WITHOUT MFA', 'red')
+                            + f' but hasn\'t used it in the last {console_login_profile["DaysSinceLastUse"]} days'
+                        )
+                    )
+
             time.sleep(5)
         else:
             print(colored('No unused Console Login Profiles were found in the account! Hurray!', color='green'))
@@ -71,7 +82,7 @@ class Reporter:
                 if role['LastUsed'] == -1:
                     ending = "Never used!"
                 else:
-                    ending = "last used {} days ago".format(role['LastUsed'])
+                    ending = f"last used {role['LastUsed']} days ago"
                 print(colored('Unused: ', 'red', attrs=['bold']) + f'{role["RoleName"]}: {ending}')
             time.sleep(5)
         else:
@@ -96,7 +107,11 @@ class Reporter:
         if len(unused_policies) > 0:
             print(colored(f'The following {len(unused_policies)} policies are redundant:', 'yellow', attrs=['bold']))
             for policy in unused_policies:
-                print(colored(policy['PolicyName'], 'yellow', attrs=['bold']) + f' is not attached to any user, group or role')
+                print(
+                    colored(policy['PolicyName'], 'yellow', attrs=['bold'])
+                    + ' is not attached to any user, group or role'
+                )
+
             time.sleep(5)
         else:
             print(colored('No unattached policies were found in the account! Hurray!', color='green'))
@@ -157,7 +172,10 @@ class Reporter:
         print(colored('Successfully ', 'green', attrs=['bold']) + 'migrated your current IAM setup to terraform!')
         print(f'Migrated {len(terraformed_entities["Users"])} users, {len(terraformed_entities["Groups"])} groups, {len(terraformed_entities["Roles"])} '
               f'roles and {len(terraformed_entities["Policies"])} policies, as well as all connections between them, to terraform.')
-        print(f'Your terraform files can now be found at the directory you specified: ' + colored(result_dir, attrs=['underline']))
+        print(
+            'Your terraform files can now be found at the directory you specified: '
+            + colored(result_dir, attrs=['underline'])
+        )
 
     @classmethod
     def print_version(cls):
